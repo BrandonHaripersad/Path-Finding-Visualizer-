@@ -1,6 +1,10 @@
 import pygame
 import math
-
+import copy
+try:
+   import queue
+except ImportError:
+   import Queue as queue
 
 pygame.init()
 
@@ -46,18 +50,32 @@ def findPath(startNode, endNode, nodes):
 
     path = queue.Queue()
     path.put([])
-
-    lastPath = []
     
+    lastPath = []
+    put = []
+
     while not foundEnd(lastPath, endNode):
         lastPath = path.get()
-        for i in ["L, R, U, D"]:
+        for i in ["L", "R", "U", "D"]:
             if validMove(startNode, lastPath, nodes, i):
                 node = getNode(startNode, lastPath, nodes, i)
-                lastPath.apppend(node)
-                path.put(lastPath)
+                put = lastPath.copy()
+                put.append(node)
+                path.put(put)
+            else:
+                continue
+    lastPath = path.get()
+    lastPath.append(endNode)
 
-    return path
+    return lastPath
+
+def foundEnd(lastPath, endNode):
+    if len(lastPath) == 0:
+        return False
+    elif lastPath[-1] == endNode:
+        return True
+    else:
+        return False
 
 def validMove(startNode, lastPath, nodes, dir):
     if len(lastPath) == 0:
@@ -68,10 +86,10 @@ def validMove(startNode, lastPath, nodes, dir):
             if Node(startNode.x, startNode.y + 1) in nodes[startNode.x]:
                 return True
         if dir == "U":
-            if Node(startNode.x + 1, startNode.y) in nodes[startNode.x + 1]:
+            if Node(startNode.x - 1, startNode.y) in nodes[startNode.x + 1]:
                 return True
         if dir == "D":
-            if Node(startNode.x - 1, startNode.y) in nodes[startNode.x - 1]:
+            if Node(startNode.x + 1, startNode.y) in nodes[startNode.x - 1]:
                 return True
     else:
         lastNode = lastPath[-1]
@@ -82,10 +100,10 @@ def validMove(startNode, lastPath, nodes, dir):
             if any(Node(lastNode.x, lastNode.y + 1) in node for node in nodes):
                 return True
         if dir == "U":
-            if any(Node(lastNode.x + 1, lastNode.y) in node for node in nodes):
+            if any(Node(lastNode.x - 1, lastNode.y) in node for node in nodes):
                 return True
         if dir == "D":
-            if any(Node(lastNode.x - 1, lastNode.y) in node for node in nodes):
+            if any(Node(lastNode.x + 1, lastNode.y) in node for node in nodes):
                 return True
     return False
 
@@ -96,9 +114,9 @@ def getNode(startNode, lastPath, nodes, dir):
         if dir == "R":
             return nodes[startNode.x][startNode.y + 1]
         if dir == "U":
-            return nodes[startNode.x + 1][startNode.y]
+            return nodes[startNode.x - 1][startNode.y]
         if dir == "D":
-            return nodes[startNodes.x - 1][startNode.y]
+            return nodes[startNode.x + 1][startNode.y]
     else:
         lastNode = lastPath[-1]
         if dir == "L":
@@ -106,9 +124,9 @@ def getNode(startNode, lastPath, nodes, dir):
         if dir == "R":
             return nodes[lastNode.x][lastNode.y + 1]
         if dir == "U":
-            return nodes[lastNode.x + 1][lastNode.y]
-        if dir == "D":
             return nodes[lastNode.x - 1][lastNode.y]
+        if dir == "D":
+            return nodes[lastNode.x + 1][lastNode.y]
 
 def isStartNode(self, x, y):
     pass   
@@ -144,14 +162,13 @@ def game_loop():
                 running = False
 
 def main():
-    win = pygame.display.set_mode((1000, 1000))
+    #win = pygame.display.set_mode((1000, 1000))
     intilization() 
     T = createNodeGrid(5, 5)
-    rect_list = drawGrid(T, win)
-    print(rect_list)
     print(T)
-    print(T[0][0])
-    print(validMove(T[0][0], [], T, "L"))
+    #rect_list = drawGrid(T, win)
+    print(T[1][2])
+    print(findPath(T[0][0], T[4][4], T))
     game_loop()
    
     pygame.display.update()
