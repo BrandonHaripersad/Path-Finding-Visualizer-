@@ -1,5 +1,6 @@
 import pygame
 import math
+import random
 import copy
 try:
    import queue
@@ -13,13 +14,15 @@ HEIGHT = 5
 MARGIN = 1
 
 win = pygame.display.set_mode((600, 600))
+walls = []
 
 class Node:
 
-    def __init__(self, x, y, rect=None):
+    def __init__(self, x, y, rect=None, wall=False):
         self.x = x
         self.y = y
         self.rect = rect
+        self.wall = wall
 
     def __str__(self):
         return "(" + str(self.x) + "," + str(self.y) + ")"
@@ -45,11 +48,29 @@ def createNodeGrid(rows, cols):
         p = 0
     return nodes
 
+def createWalls(nodes, walls):
+    random.seed(1)
+    for row in nodes:
+        for col in row:
+            value = random.random()
+            if value < 0.3:
+                col.wall = True
+                walls.append(col)
+    return walls
+
 def findPath(startNode, endNode, nodes):
     start = startNode
     end = endNode
 
-    pygame.draw.rect(win, (0, 255, 0), end.rect)
+    if start.wall == True:
+        walls.remove(start)
+        start.wall = False
+
+    if end.wall == True:
+        walls.remove(end)
+        end.wall = False
+
+    pygame.draw.rect(win, pygame.Color("#ff6361"), end.rect)
     pygame.display.update()
 
     path = queue.Queue()
@@ -60,27 +81,31 @@ def findPath(startNode, endNode, nodes):
     traversed = []
 
     while not foundEnd(lastPath, endNode):
+        if path.empty():
+            print("No Path")
+            break
         lastPath = path.get()
+        # drawPath(lastPath)
         for i in ["L", "R", "U", "D"]:
-            if validMove(startNode, lastPath, nodes, traversed, i):
+            if validMove(startNode, lastPath, nodes, traversed, walls, i):
                 node = getNode(startNode, lastPath, nodes, i)
                 traversed.append(node)
-                pygame.draw.rect(win, (0, 0, 255), node.rect)
+                pygame.draw.rect(win, pygame.Color("#58508d"), node.rect)
                 pygame.display.update()
                 put = lastPath.copy()
                 put.append(node)
                 path.put(put)
                 put = []
-                pygame.draw.rect(win, (0, 255, 0), start.rect)
+                pygame.draw.rect(win, pygame.Color("#ff6361"), start.rect)
                 pygame.display.update()
             else:
                 continue
-    
-    pygame.draw.rect(win, (0, 255, 0), start.rect)
+
+    pygame.draw.rect(win, pygame.Color("#58508d"), start.rect)
     pygame.display.update()
     
     for i in lastPath:
-        pygame.draw.rect(win, (0, 255, 0), i.rect)
+        pygame.draw.rect(win, pygame.Color("#ffa600"), i.rect)
         pygame.display.update()
 
     return lastPath
@@ -93,33 +118,33 @@ def foundEnd(lastPath, endNode):
     else:
         return False
 
-def validMove(startNode, lastPath, nodes, traversed, dir):
+def validMove(startNode, lastPath, nodes, traversed, walls, dir):
     if len(lastPath) == 0:
         if dir == "L":
-            if Node(startNode.x, startNode.y - 1) in nodes[startNode.x]:
+            if Node(startNode.x, startNode.y - 1) in nodes[startNode.x] and not(Node(startNode.x, startNode.y - 1) in walls):
                 return True
         if dir == "R":
-            if Node(startNode.x, startNode.y + 1) in nodes[startNode.x]:
+            if Node(startNode.x, startNode.y + 1) in nodes[startNode.x] and not(Node(startNode.x, startNode.y + 1) in walls):
                 return True
         if dir == "U":
-            if Node(startNode.x - 1, startNode.y) in nodes[startNode.x + 1]:
+            if Node(startNode.x - 1, startNode.y) in nodes[startNode.x + 1] and not(Node(startNode.x - 1, startNode.y) in walls):
                 return True
         if dir == "D":
-            if Node(startNode.x + 1, startNode.y) in nodes[startNode.x - 1]:
+            if Node(startNode.x + 1, startNode.y) in nodes[startNode.x - 1] and not(Node(startNode.x + 1, startNode.y) in walls):
                 return True
     else:
         lastNode = lastPath[-1]
         if dir == "L":
-            if any(Node(lastNode.x, lastNode.y - 1) in node for node in nodes) and not(Node(lastNode.x, lastNode.y - 1) in lastPath) and not(Node(lastNode.x, lastNode.y - 1) in traversed):
+            if any(Node(lastNode.x, lastNode.y - 1) in node for node in nodes) and not(Node(lastNode.x, lastNode.y - 1) in lastPath) and not(Node(lastNode.x, lastNode.y - 1) in traversed) and not(Node(lastNode.x, lastNode.y - 1) in walls):
                 return True
         if dir == "R":
-            if any(Node(lastNode.x, lastNode.y + 1) in node for node in nodes) and not(Node(lastNode.x, lastNode.y + 1) in lastPath) and not(Node(lastNode.x, lastNode.y + 1) in traversed):
+            if any(Node(lastNode.x, lastNode.y + 1) in node for node in nodes) and not(Node(lastNode.x, lastNode.y + 1) in lastPath) and not(Node(lastNode.x, lastNode.y + 1) in traversed) and not(Node(lastNode.x, lastNode.y + 1) in walls):
                 return True
         if dir == "U":
-            if any(Node(lastNode.x - 1, lastNode.y) in node for node in nodes) and not(Node(lastNode.x - 1, lastNode.y) in lastPath) and not(Node(lastNode.x - 1, lastNode.y) in traversed):
+            if any(Node(lastNode.x - 1, lastNode.y) in node for node in nodes) and not(Node(lastNode.x - 1, lastNode.y) in lastPath) and not(Node(lastNode.x - 1, lastNode.y) in traversed) and not(Node(lastNode.x - 1, lastNode.y) in walls):
                 return True
         if dir == "D":
-            if any(Node(lastNode.x + 1, lastNode.y) in node for node in nodes) and not(Node(lastNode.x + 1, lastNode.y) in lastPath) and not(Node(lastNode.x + 1, lastNode.y) in traversed):
+            if any(Node(lastNode.x + 1, lastNode.y) in node for node in nodes) and not(Node(lastNode.x + 1, lastNode.y) in lastPath) and not(Node(lastNode.x + 1, lastNode.y) in traversed) and not(Node(lastNode.x + 1, lastNode.y) in walls):
                 return True
     return False
 
@@ -145,19 +170,21 @@ def getNode(startNode, lastPath, nodes, dir):
             return nodes[lastNode.x + 1][lastNode.y]
 
 def drawGrid(nodes, win):
-    rect_list = []
-    i = 0
     for row in nodes:
-        rect_list.insert(i, [])
         for col in row:
             cord = [(MARGIN + WIDTH) * col.x + MARGIN, (MARGIN + HEIGHT) * col.y + MARGIN, WIDTH, HEIGHT]
-            rect = pygame.draw.rect(win, (255, 0, 0), [(MARGIN + WIDTH) * col.x + MARGIN, (MARGIN + HEIGHT) * col.y + MARGIN, WIDTH, HEIGHT])
-            rect_list[i].insert(col.y, rect)
             col.rect = cord
-            pygame.display.update()
-        i = i + 1
-    return rect_list
+            if col.wall == True:
+                 pygame.draw.rect(win, pygame.Color("#000000"), [(MARGIN + WIDTH) * col.x + MARGIN, (MARGIN + HEIGHT) * col.y + MARGIN, WIDTH, HEIGHT])
+                 pygame.display.update()
+            else:
+                pygame.draw.rect(win, pygame.Color("#003f5c"), [(MARGIN + WIDTH) * col.x + MARGIN, (MARGIN + HEIGHT) * col.y + MARGIN, WIDTH, HEIGHT])
+                pygame.display.update()
 
+def drawPath(path):
+    for i in path:
+        pygame.draw.rect(win, (50, 25, 75), i.rect)
+        pygame.display.update()
 
 # Pygame and window set up below
 
@@ -174,8 +201,9 @@ def game_loop():
 def main():
     intilization() 
     T = createNodeGrid(100, 100)
-    rect_list = drawGrid(T, win)
-    lastPath = findPath(T[16][42], T[62][82], T)
+    createWalls(T, walls)
+    drawGrid(T, win)
+    findPath(T[0][0], T[49][99], T)
     game_loop()
    
     pygame.display.update()
